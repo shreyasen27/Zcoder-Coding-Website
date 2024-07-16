@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState,useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { toast } from 'react-toastify';
 import { doc, setDoc, collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
-import { firestore } from '@/firebase/firebase';
+import { firestore,auth } from '@/firebase/firebase';
+
 
 type Example = {
   id: string;
@@ -23,7 +24,7 @@ const AddSolutionForm: React.FC = () => {
     videoId: "",
     link: "",
     constraints: "",
-    visibility: "",
+    isPrivate: true,
     order: 0,
     examples: Array<Example>(3).fill({
       id: "",
@@ -35,16 +36,34 @@ const AddSolutionForm: React.FC = () => {
     handlerFunction: "",
     likes: 0,
     dislikes: 0,
+    creatorId:"",
   });
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setInputs({
-      ...inputs,
-      [name]: value,
-    });
-  };
+  useEffect(() => {
+    const userId = auth.currentUser?.uid;
+    if (userId) {
+      setInputs((prevInputs) => ({
+        ...prevInputs,
+        creatorId: userId,
+      }));
+    }
+  }, []);
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target;
+  
+    if (type === 'radio') {
+      setInputs({
+        ...inputs,
+        [name]: value === 'true', // Convert 'true'/'false' string values to boolean
+      });
+    } else {
+      setInputs({
+        ...inputs,
+        [name]: value,
+      });
+    }
+  };
   const handleExampleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>, index: number) => {
     const { name, value } = e.target;
     const updatedExamples = [...inputs.examples];
@@ -82,6 +101,7 @@ const AddSolutionForm: React.FC = () => {
       const newProblem = {
         ...inputs,
         order: highestOrder + 1,
+        creatorId:auth.currentUser?.uid,
       };
 
       await setDoc(doc(firestore, "problems", inputs.id), newProblem);
@@ -106,7 +126,7 @@ const AddSolutionForm: React.FC = () => {
       <form
         onSubmit={handleSubmit}
         className="bg-orange-500 p-6 rounded shadow-md w-full max-w-4xl grid gap-4"
-        style={{ height: '100%', overflowY: 'auto' }}
+        style={{ width: '600px', minHeight:'600px' }}
       >
         <h2 className="text-2xl mb-4 text-white col-span-full text-center">Add New Problem</h2>
         <div className="mb-4 col-span-full">
@@ -162,33 +182,7 @@ const AddSolutionForm: React.FC = () => {
             <option value="hard">Hard</option>
           </select>
         </div>
-        <div className="mb-4">
-          <label className="block text-white">Visibility</label>
-          <div className="flex items-center">
-            <label className="text-white mr-4">
-              <input
-                type="radio"
-                name="visibility"
-                value="public"
-                checked={inputs.visibility === 'public'}
-                onChange={handleInputChange}
-                className="mr-2"
-              />
-              Public
-            </label>
-            <label className="text-white">
-              <input
-                type="radio"
-                name="visibility"
-                value="private"
-                checked={inputs.visibility === 'private'}
-                onChange={handleInputChange}
-                className="mr-2"
-              />
-              Private
-            </label>
-          </div>
-        </div>
+       
         <div className="mb-4">
           <label className="block text-white">Video ID</label>
           <input
@@ -227,6 +221,43 @@ const AddSolutionForm: React.FC = () => {
             onChange={handleInputChange}
             className="w-full px-3 py-2 border rounded"
             rows={3}
+          />
+        </div>
+         {/* Privacy Setting */}
+         <div className="mb-4 col-span-full">
+          <label className="block text-white">Privacy Setting</label>
+          <div className="flex gap-4">
+            <label className="text-white">
+              <input
+                type="radio"
+                name="isPrivate"
+                value="true"
+                checked={inputs.isPrivate === true}
+                onChange={handleInputChange}
+              />
+              Private
+            </label>
+            <label className="text-white">
+              <input
+                type="radio"
+                name="isPrivate"
+                value="false"
+                checked={inputs.isPrivate === false}
+                onChange={handleInputChange}
+              />
+              Public
+            </label>
+          </div>
+        </div>
+        {/* Creator ID - Readonly */}
+        <div className="mb-4 col-span-full">
+          <label className="block text-white">Creator ID</label>
+          <input
+            type="text"
+            name="creatorId"
+            value={inputs.creatorId}
+            readOnly
+            className="w-full px-3 py-2 border rounded bg-gray-200"
           />
         </div>
         {/* Examples */}

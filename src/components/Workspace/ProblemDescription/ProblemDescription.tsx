@@ -1,8 +1,7 @@
 import CircleSkeleton from "@/components/Skeletons/CircleSkeleton";
 import RectangleSkeleton from "@/components/Skeletons/RectangleSkeleton";
-import { auth } from "@/firebase/firebase";
-import { firestore } from "@/firebase/firebase";
-import { DBProblem,Problem } from "@/utils/types/problem";
+import { auth, firestore } from "@/firebase/firebase";
+import { DBProblem } from "@/utils/types/problem";
 import { arrayRemove, arrayUnion, doc, getDoc, runTransaction, updateDoc } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { useAuthState } from "react-firebase-hooks/auth";
@@ -12,14 +11,14 @@ import { TiStarOutline } from "react-icons/ti";
 import { toast } from "react-toastify";
 
 type ProblemDescriptionProps = {
-	problem: Problem;
+	problem: DBProblem;
 	_solved: boolean;
 };
 
 const ProblemDescription: React.FC<ProblemDescriptionProps> = ({ problem, _solved }) => {
 	const [user] = useAuthState(auth);
-	const { currentProblem, loading, problemDifficultyClass, setCurrentProblem } = useGetCurrentProblem(problem.id);
-	const { liked, disliked, solved, setData, starred } = useGetUsersDataOnProblem(problem.id);
+	const { currentProblem, loading, problemDifficultyClass, setCurrentProblem } = useGetCurrentProblem(problem?.id);
+	const { liked, disliked, solved, setData, starred } = useGetUsersDataOnProblem(problem?.id);
 	const [updating, setUpdating] = useState(false);
 
 	const returnUserDataAndProblemData = async (transaction: any) => {
@@ -73,9 +72,7 @@ const ProblemDescription: React.FC<ProblemDescriptionProps> = ({ problem, _solve
 					transaction.update(problemRef, {
 						likes: problemDoc.data().likes + 1,
 					});
-					setCurrentProblem((prev) => {
-                        return (prev ? { ...prev, likes: prev.likes + 1 } : null);
-                    });
+					setCurrentProblem((prev) => (prev ? { ...prev, likes: prev.likes + 1 } : null));
 					setData((prev) => ({ ...prev, liked: true }));
 				}
 			}
@@ -130,6 +127,7 @@ const ProblemDescription: React.FC<ProblemDescriptionProps> = ({ problem, _solve
 		});
 		setUpdating(false);
 	};
+
 
 	const handleStar = async () => {
 		if (!user) {
@@ -227,12 +225,13 @@ const ProblemDescription: React.FC<ProblemDescriptionProps> = ({ problem, _solve
 
 						{/* Problem Statement(paragraphs) */}
 						<div className='text-white text-sm'>
-							<div dangerouslySetInnerHTML={{ __html: problem.problemStatement }} />
+							<div dangerouslySetInnerHTML={{ __html: problem?.problemStatement }} />
 						</div>
 
 						{/* Examples */}
+						
 						<div className='mt-4'>
-							{problem.examples.map((example, index) => (
+							{problem?.examples.map((example, index) => (
 								<div key={example.id}>
 									<p className='font-medium text-white '>Example {index + 1}: </p>
 									{example.img && <img src={example.img} alt='' className='mt-3' />}
@@ -257,7 +256,7 @@ const ProblemDescription: React.FC<ProblemDescriptionProps> = ({ problem, _solve
 						<div className='my-8 pb-4'>
 							<div className='text-white text-sm font-medium'>Constraints:</div>
 							<ul className='text-white ml-5 list-disc '>
-								<div dangerouslySetInnerHTML={{ __html: problem.constraints }} />
+								<div dangerouslySetInnerHTML={{ __html: problem?.constraints }} />
 							</ul>
 						</div>
 					</div>
@@ -268,7 +267,7 @@ const ProblemDescription: React.FC<ProblemDescriptionProps> = ({ problem, _solve
 };
 export default ProblemDescription;
 
-function useGetCurrentProblem(problemId: string) {
+function useGetCurrentProblem(problemId: string| null) {
 	const [currentProblem, setCurrentProblem] = useState<DBProblem | null>(null);
 	const [loading, setLoading] = useState<boolean>(true);
 	const [problemDifficultyClass, setProblemDifficultyClass] = useState<string>("");
@@ -277,6 +276,7 @@ function useGetCurrentProblem(problemId: string) {
 		// Get problem from DB
 		const getCurrentProblem = async () => {
 			setLoading(true);
+			if(problemId){
 			const docRef = doc(firestore, "problems", problemId);
 			const docSnap = await getDoc(docRef);
 			if (docSnap.exists()) {
@@ -291,6 +291,7 @@ function useGetCurrentProblem(problemId: string) {
 						: " bg-dark-pink text-dark-pink"
 				);
 			}
+		};
 			setLoading(false);
 		};
 		getCurrentProblem();
@@ -300,28 +301,40 @@ function useGetCurrentProblem(problemId: string) {
 }
 
 function useGetUsersDataOnProblem(problemId: string) {
-	const [data, setData] = useState({ liked: false, disliked: false, starred: false, solved: false });
+	const [data, setData] = useState({
+	  liked: false,
+	  disliked: false,
+	  starred: false,
+	  solved: false,
+	});
 	const [user] = useAuthState(auth);
-
+  
 	useEffect(() => {
-		const getUsersDataOnProblem = async () => {
-			const userRef = doc(firestore, "users", user!.uid);
-			const userSnap = await getDoc(userRef);
-			if (userSnap.exists()) {
-				const data = userSnap.data();
-				const { solvedProblems, likedProblems, dislikedProblems, starredProblems } = data;
-				setData({
-					liked: likedProblems.includes(problemId), // likedProblems["two-sum","jump-game"]
-					disliked: dislikedProblems.includes(problemId),
-					starred: starredProblems.includes(problemId),
-					solved: solvedProblems.includes(problemId),
-				});
-			}
-		};
-
-		if (user) getUsersDataOnProblem();
-		return () => setData({ liked: false, disliked: false, starred: false, solved: false });
+	  const getUsersDataOnProblem = async () => {
+		if (user) {
+		  const userRef = doc(firestore, "users", user.uid);
+		  const userSnap = await getDoc(userRef);
+		  if (userSnap.exists()) {
+			const userData = userSnap.data();
+			const {
+			  likedProblems = [],
+			  dislikedProblems = [],
+			  starredProblems = [],
+			  solvedProblems = [], // Ensure solvedProblems is initialized as an array
+			} = userData || {};
+  
+			setData({
+			  liked: likedProblems.includes(problemId),
+			  disliked: dislikedProblems.includes(problemId),
+			  starred: starredProblems.includes(problemId),
+			  solved: Array.isArray(solvedProblems) && solvedProblems.includes(problemId), // Check if solvedProblems is an array
+			});
+		  }
+		}
+	  };
+  
+	  getUsersDataOnProblem();
 	}, [problemId, user]);
-
+  
 	return { ...data, setData };
 }

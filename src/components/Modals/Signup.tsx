@@ -1,5 +1,5 @@
 import { authModalState } from "@/atoms/authModalAtom";
-import { auth,firestore } from "@/firebase/firebase";
+import { auth, firestore } from "@/firebase/firebase";
 import { useEffect, useState } from "react";
 import { useSetRecoilState } from "recoil";
 import { useCreateUserWithEmailAndPassword } from "react-firebase-hooks/auth";
@@ -37,6 +37,7 @@ const Signup: React.FC<SignupProps> = () => {
 				likedProblems: [],
 				dislikedProblems: [],
 				solvedProblems: [],
+				solutionProblemMap: [],
 				starredProblems: [],
 			};
 			await setDoc(doc(firestore, "users", newUser.user.uid), userData);

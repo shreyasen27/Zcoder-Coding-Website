@@ -8,7 +8,7 @@ export type Example = {
 
 // local problem data
 export type Problem = {
-	id: string;
+	id: number;
 	title: string;
 	problemStatement: string;
 	examples: Example[];
@@ -20,7 +20,7 @@ export type Problem = {
 };
 
 export type DBProblem = {
-	id: string;
+	id: number;
 	title: string;
 	problemStatement: string;
 	category: string;
@@ -35,4 +35,6 @@ export type DBProblem = {
 	starterFunctionName:string;
 	starterCode:string;
 	handlerFunction: string;
+	isPrivate:boolean;
+	creatorId:string;
 };

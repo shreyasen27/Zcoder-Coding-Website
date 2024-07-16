@@ -10,8 +10,7 @@ import { useAuthState } from "react-firebase-hooks/auth";
 import { auth, firestore } from "@/firebase/firebase";
 import { toast } from "react-toastify";
 import { useRouter } from "next/router";
-import { arrayUnion, doc, updateDoc } from "firebase/firestore";
-import useLocalStorage from "@/hooks/useLocalStorage";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 
 type PlaygroundProps = {
   problem: Problem;
@@ -27,12 +26,10 @@ export interface ISettings {
 
 const Playground: React.FC<PlaygroundProps> = ({ problem, setSuccess, setSolved }) => {
   const [activeTestCaseId, setActiveTestCaseId] = useState<number>(0);
-  const [userCode, setUserCode] = useState<string>(problem.starterCode);
-
-  const [fontSize, setFontSize] = useLocalStorage("lcc-fontSize", "16px");
+  const [userCode, setUserCode] = useState<string>(problem?.starterCode);
 
   const [settings, setSettings] = useState<ISettings>({
-    fontSize: fontSize,
+    fontSize: "16px",
     settingsModalIsOpen: false,
     dropdownIsOpen: false,
   });
@@ -41,6 +38,41 @@ const Playground: React.FC<PlaygroundProps> = ({ problem, setSuccess, setSolved 
   const {
     query: { pid },
   } = useRouter();
+
+  useEffect(() => {
+    const fetchUserCode = async () => {
+      if (!user) return;
+
+      try {
+        const userRef = doc(firestore, "users", user.uid);
+        const userDoc = await getDoc(userRef);
+
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          const solutionProblemMap = userData?.solutionProblemMap || [];
+
+          // Find the index of the problem in solutionProblemMap
+          const index = solutionProblemMap.findIndex((item: any) => item.pid === pid);
+
+          if (index !== -1) {
+            // Update the user code if the problem exists
+            setUserCode(solutionProblemMap[index].code);
+          } else {
+            // Use the starter code if no solution is found
+            setUserCode(problem.starterCode);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching user's document:", error);
+      }
+    };
+
+    fetchUserCode();
+  }, [user, pid, problem?.starterCode]);
+
+  const onChange = (value: string) => {
+    setUserCode(value);
+  };
 
   const handleSubmit = async () => {
     if (!user) {
@@ -53,10 +85,23 @@ const Playground: React.FC<PlaygroundProps> = ({ problem, setSuccess, setSolved 
     }
 
     try {
-      // Update user's code in Firestore
+      // Fetch the current user document
       const userRef = doc(firestore, "users", user.uid);
+      const userDoc = await getDoc(userRef);
+      let solutionProblemMap = [];
+
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        solutionProblemMap = userData?.solutionProblemMap || [];
+      }
+
+      // Update or add the problem solution
+      const updatedSolutionProblemMap = solutionProblemMap.filter((item: any) => item.pid !== pid);
+      updatedSolutionProblemMap.push({ pid, code: userCode });
+
+      // Update user's solutionProblemMap in Firestore
       await updateDoc(userRef, {
-        [`solvedProblems.${pid}`]: userCode,
+        solutionProblemMap: updatedSolutionProblemMap,
       });
 
       toast.success("Problem solution saved successfully!", {
@@ -78,20 +123,6 @@ const Playground: React.FC<PlaygroundProps> = ({ problem, setSuccess, setSolved 
         theme: "dark",
       });
     }
-  };
-
-  useEffect(() => {
-    const code = localStorage.getItem(`code-${pid}`);
-    if (user) {
-      setUserCode(code ? JSON.parse(code) : problem.starterCode);
-    } else {
-      setUserCode(problem.starterCode);
-    }
-  }, [pid, user, problem.starterCode]);
-
-  const onChange = (value: string) => {
-    setUserCode(value);
-    localStorage.setItem(`code-${pid}`, JSON.stringify(value));
   };
 
   return (
@@ -118,7 +149,7 @@ const Playground: React.FC<PlaygroundProps> = ({ problem, setSuccess, setSolved 
           </div>
 
           <div className='flex'>
-            {problem.examples.map((example, index) => (
+            {problem?.examples.map((example, index) => (
               <div
                 className='mr-2 items-start mt-2 '
                 key={example.id}
@@ -140,11 +171,11 @@ const Playground: React.FC<PlaygroundProps> = ({ problem, setSuccess, setSolved 
           <div className='font-semibold my-4'>
             <p className='text-sm font-medium mt-4 text-white'>Input:</p>
             <div className='w-full cursor-text rounded-lg border px-3 py-[10px] bg-dark-fill-3 border-transparent text-white mt-2'>
-              {problem.examples[activeTestCaseId].inputText}
+              {problem?.examples[activeTestCaseId].inputText}
             </div>
             <p className='text-sm font-medium mt-4 text-white'>Output:</p>
             <div className='w-full cursor-text rounded-lg border px-3 py-[10px] bg-dark-fill-3 border-transparent text-white mt-2'>
-              {problem.examples[activeTestCaseId].outputText}
+              {problem?.examples[activeTestCaseId].outputText}
             </div>
           </div>
         </div>
