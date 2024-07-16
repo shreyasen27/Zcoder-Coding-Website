@@ -18,12 +18,12 @@ type ProblemDescriptionProps = {
 const ProblemDescription: React.FC<ProblemDescriptionProps> = ({ problem, _solved }) => {
 	const [user] = useAuthState(auth);
 	const { currentProblem, loading, problemDifficultyClass, setCurrentProblem } = useGetCurrentProblem(problem?.id);
-	const { liked, disliked, solved, setData, starred } = useGetUsersDataOnProblem(problem?.id);
+	const { liked, disliked, solved, setData, starred } = useGetUsersDataOnProblem(problem?.id.toString());
 	const [updating, setUpdating] = useState(false);
 
 	const returnUserDataAndProblemData = async (transaction: any) => {
 		const userRef = doc(firestore, "users", user!.uid);
-		const problemRef = doc(firestore, "problems", problem.id);
+		const problemRef = doc(firestore, "problems", problem.id.toString());
 		const userDoc = await transaction.get(userRef);
 		const problemDoc = await transaction.get(problemRef);
 		return { userDoc, problemDoc, userRef, problemRef };
@@ -43,7 +43,7 @@ const ProblemDescription: React.FC<ProblemDescriptionProps> = ({ problem, _solve
 				if (liked) {
 					// remove problem id from likedProblems on user document, decrement likes on problem document
 					transaction.update(userRef, {
-						likedProblems: userDoc.data().likedProblems.filter((id: string) => id !== problem.id),
+						likedProblems: userDoc.data().likedProblems.filter((id: string) => id !== problem.id.toString()),
 					});
 					transaction.update(problemRef, {
 						likes: problemDoc.data().likes - 1,
@@ -54,7 +54,7 @@ const ProblemDescription: React.FC<ProblemDescriptionProps> = ({ problem, _solve
 				} else if (disliked) {
 					transaction.update(userRef, {
 						likedProblems: [...userDoc.data().likedProblems, problem.id],
-						dislikedProblems: userDoc.data().dislikedProblems.filter((id: string) => id !== problem.id),
+						dislikedProblems: userDoc.data().dislikedProblems.filter((id: string) => id !== problem.id.toString()),
 					});
 					transaction.update(problemRef, {
 						likes: problemDoc.data().likes + 1,
@@ -93,7 +93,7 @@ const ProblemDescription: React.FC<ProblemDescriptionProps> = ({ problem, _solve
 				// already disliked, already liked, not disliked or liked
 				if (disliked) {
 					transaction.update(userRef, {
-						dislikedProblems: userDoc.data().dislikedProblems.filter((id: string) => id !== problem.id),
+						dislikedProblems: userDoc.data().dislikedProblems.filter((id: string) => id !== problem.id.toString()),
 					});
 					transaction.update(problemRef, {
 						dislikes: problemDoc.data().dislikes - 1,
@@ -103,7 +103,7 @@ const ProblemDescription: React.FC<ProblemDescriptionProps> = ({ problem, _solve
 				} else if (liked) {
 					transaction.update(userRef, {
 						dislikedProblems: [...userDoc.data().dislikedProblems, problem.id],
-						likedProblems: userDoc.data().likedProblems.filter((id: string) => id !== problem.id),
+						likedProblems: userDoc.data().likedProblems.filter((id: string) => id !== problem.id.toString()),
 					});
 					transaction.update(problemRef, {
 						dislikes: problemDoc.data().dislikes + 1,
@@ -267,7 +267,7 @@ const ProblemDescription: React.FC<ProblemDescriptionProps> = ({ problem, _solve
 };
 export default ProblemDescription;
 
-function useGetCurrentProblem(problemId: string| null) {
+function useGetCurrentProblem(problemId: number| null) {
 	const [currentProblem, setCurrentProblem] = useState<DBProblem | null>(null);
 	const [loading, setLoading] = useState<boolean>(true);
 	const [problemDifficultyClass, setProblemDifficultyClass] = useState<string>("");
@@ -276,22 +276,24 @@ function useGetCurrentProblem(problemId: string| null) {
 		// Get problem from DB
 		const getCurrentProblem = async () => {
 			setLoading(true);
-			if(problemId){
-			const docRef = doc(firestore, "problems", problemId);
+			if(problemId!==null){
+			const docRef = doc(firestore, "problems", problemId.toString());
 			const docSnap = await getDoc(docRef);
 			if (docSnap.exists()) {
-				const problem = docSnap.data();
-				setCurrentProblem({ id: docSnap.id, ...problem } as DBProblem);
+				const problemData = docSnap.data() as DBProblem;
+						
+				setCurrentProblem({...problemData,
+					id : problemId});
 				// easy, medium, hard
 				setProblemDifficultyClass(
-					problem.difficulty === "Easy"
+					problemData.difficulty === "Easy"
 						? "bg-olive text-olive"
-						: problem.difficulty === "Medium"
+						: problemData.difficulty === "Medium"
 						? "bg-dark-yellow text-dark-yellow"
 						: " bg-dark-pink text-dark-pink"
 				);
 			}
-		};
+		}
 			setLoading(false);
 		};
 		getCurrentProblem();
