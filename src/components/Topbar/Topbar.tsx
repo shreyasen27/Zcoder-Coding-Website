@@ -14,7 +14,8 @@ import Timer from "../Timer/Timer";
 import { useRouter } from "next/router";
 import { fetchPublicProblems, fetchPrivateProblems } from "@/utils/problems"; // Updated import
 import { DBProblem } from "@/utils/types/problem";
-
+import {doc,getDoc} from "firebase/firestore";
+import {BiSearch} from "react-icons/bi"
 type TopbarProps = {
   problemPage?: boolean;
 };
@@ -24,8 +25,31 @@ const Topbar: React.FC<TopbarProps> = ({ problemPage }) => {
   const setAuthModalState = useSetRecoilState(authModalState);
   const router = useRouter();
   const [problems, setProblems] = useState<DBProblem[]>([]);
-
+  const [avatar,setAvatar]=useState<string | null>(null);
+  const [searchTerm,setSearchTerm]=useState("");
   useEffect(() => {
+    const fetchAvatar=async () =>{
+      if(user){
+        try{
+          const userDocRef=doc(firestore,"users",user.uid);
+          const userDoc= await getDoc(userDocRef);
+          if(userDoc.exists())
+          {
+            const userData=userDoc.data();
+            const maleAvatar="/male_avatar.jpeg";
+            const femaleAvatar="/female_avatar.jpeg";
+            setAvatar(
+              userData.avatar || (userData.gender ==="Male"?maleAvatar:femaleAvatar)
+            );
+          }
+        } catch(error)
+        {
+          console.error("Error fetching user data:", error);
+        }
+      }
+    };
+    fetchAvatar();
+  
     if (!loading && !user) {
       console.error("User is not authenticated.");
       // Optionally handle the case where user is not authenticated
@@ -56,7 +80,12 @@ const Topbar: React.FC<TopbarProps> = ({ problemPage }) => {
 
     loadProblems();
   }, []);
-
+  const handleSearch=()=>{
+    if(searchTerm.trim())
+    {
+      router.push('/search?query=${encodeURIComponent(searchTerm.trim())}');
+    }
+  };
   const handleProblemChange = (isForward: boolean) => {
     const currentProblemId = Number(router.query.pid);
     const currentProblem = problems[currentProblemId];
@@ -90,7 +119,19 @@ const Topbar: React.FC<TopbarProps> = ({ problemPage }) => {
         <Link href='/' className='h-[22px] flex-1'>
           <Image src='/zcoder-favicon.png' alt='Logo' height={100} width={80} />
         </Link>
-
+          <div className="flex-grow items-center mx-auto ">
+            <div className="flex relative max-w-lg ">
+              <input type="text" className="w-full px-4 py-2 text-sm bg-white text-black rounded-lg"
+              placeholder="Search users...."
+              value={searchTerm}
+              onChange={(e)=> setSearchTerm(e.target.value)}
+              />
+              <button onClick={handleSearch}
+               className="flex place-items-end  px-4 py-2 bg-blue-950 text-white rounded-r-lg ">
+                <BiSearch size={20}/>
+               </button>
+            </div>
+          </div>
         {problemPage && (
           <div className='flex items-center gap-4 flex-1 justify-center'>
             <div
@@ -130,13 +171,13 @@ const Topbar: React.FC<TopbarProps> = ({ problemPage }) => {
           {user && problemPage && <Timer />}
           {user && (
             <div className='cursor-pointer group relative'>
-              <Image src='/avatar.png' alt='Avatar' width={30} height={30} className='rounded-full' />
+              <Image src={avatar || '/avatar.png' } alt='Avatar' width={30} height={30} className='rounded-full' />
               <div
                 className='absolute top-10 left-2/4 -translate-x-2/4  mx-auto bg-dark-layer-1 text-brand-orange p-2 rounded shadow-lg 
                 z-40 group-hover:scale-100 scale-0 
                 transition-all duration-300 ease-in-out'
               >
-                <p className='text-sm'>{user.email}</p>
+                <p className="text-center">View Profile</p>
               </div>
             </div>
           )}

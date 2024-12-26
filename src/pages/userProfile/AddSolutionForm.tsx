@@ -122,11 +122,11 @@ const AddSolutionForm: React.FC = () => {
   };
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-white p-4">
-      <form
+    <div className="h-full w-full bg-white p-0 m-0">
+      <form 
         onSubmit={handleSubmit}
-        className="bg-orange-500 p-6 rounded shadow-md w-full max-w-4xl grid gap-4"
-        style={{ width: '600px', minHeight:'600px' }}
+        className="bg-blue-950 rounded shadow-md w-screen h-full  p-6"
+      
       >
         <h2 className="text-2xl mb-4 text-white col-span-full text-center">Add New Problem</h2>
         <div className="mb-4 col-span-full">
@@ -146,7 +146,7 @@ const AddSolutionForm: React.FC = () => {
             name="title"
             value={inputs.title}
             onChange={handleInputChange}
-            className="w-full px-3 py-2 border rounded"
+            className="w-1/2 px-3 py-2 border rounded"
           />
         </div>
         <div className="mb-4 col-span-full">
@@ -156,7 +156,7 @@ const AddSolutionForm: React.FC = () => {
             value={inputs.problemStatement}
             onChange={handleInputChange}
             className="w-full px-3 py-2 border rounded"
-            rows={5}
+            rows={8}
           />
         </div>
         <div className="mb-4">
@@ -166,7 +166,7 @@ const AddSolutionForm: React.FC = () => {
             name="category"
             value={inputs.category}
             onChange={handleInputChange}
-            className="w-full px-3 py-2 border rounded"
+            className="w-1/3 px-3 py-2 border rounded"
           />
         </div>
         <div className="mb-4">
@@ -175,7 +175,7 @@ const AddSolutionForm: React.FC = () => {
             name="difficulty"
             value={inputs.difficulty}
             onChange={handleInputChange}
-            className="w-full px-3 py-2 border rounded"
+            className="w-1/4 px-3 py-2 border rounded"
           >
             <option value="easy">Easy</option>
             <option value="medium">Medium</option>
@@ -293,7 +293,7 @@ const AddSolutionForm: React.FC = () => {
                 className="w-full px-3 py-2 border rounded"
                 rows={3}
               />
-            </div>
+            </div>   
             <div className="mb-4">
               <label className="block text-white">Explanation</label>
               <textarea

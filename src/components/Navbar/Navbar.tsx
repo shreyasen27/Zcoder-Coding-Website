@@ -13,7 +13,7 @@ type NavbarProps={};
 return (
     <div className='flex items-center justify-between sm:px-12 px-2 md:px-24'>
         <Link href='/' className='flex items-center justify-center h-20'>
-            <Image src='/zcoder-favicon.png' alt='LeetClone' height={50} width={100} />
+            <Image src='/zcoder-favicon.png' alt='zcoder' height={50} width={100} />
         </Link>
         <div className='flex items-center'>
             <button

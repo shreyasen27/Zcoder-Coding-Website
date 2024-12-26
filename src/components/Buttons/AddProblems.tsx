@@ -7,7 +7,7 @@ const AddProblems: React.FC<AddProblemsProps> = () => {
     const router = useRouter();
 
     const handleSubmit = () => {
-        router.push('/userProfile/AddSolutionForm');  // Replace '/ProblemForm' with the actual URL you want to navigate to
+        router.push('/userProfile/AddSolutionForm');  
     };
 
     return (
@@ -15,7 +15,7 @@ const AddProblems: React.FC<AddProblemsProps> = () => {
             <button 
                 onClick={handleSubmit}
                 className="bg-orange-500 text-white py-2 px-4 rounded mb-4"
-                style={{ width: '1200px' }}
+                style={{ width: '500px' }}
             >
                 Add Problems
             </button>
